@@ -3,27 +3,26 @@
   <div class="json">
     <div class="upload">
       <div class="u-wrap">
+        <input type="file" name="file" class="u-file" @change="inputUploadChange" accept=".json" />
         <el-upload
+          action=""
           class="upload-item"
           ref="upload"
-          action="https://jsonplaceholder.typicode.com/posts/"
           accept=".json"
-          @click.native="fileClick"
-          :file-list="fileList"
-          :on-success="uploadSuccess"
-          :on-error="uploadError"
-          :before-upload="beforeUpload"
           :limit='1'
-          :auto-upload="false">
+          :auto-upload="true">
           <el-button class="upload-btn" slot="trigger" size="small" type="primary">选取json文件<i class="el-icon-upload el-icon--right"></i></el-button>
           <div class="upload-tip" slot="tip">1.只能上传.json文件，超过1M，<span @click="contractMe">点这里</span></div>
           <div class="upload-tip" slot="tip">2.支持转换成csv或者xlsx(Excel)</div>
-          <div class="upload-tip" slot="tip">3.当文件和文本框同时有内容是，以文件为主</div>
+          <div class="upload-tip" slot="tip">3.当文件和文本框同时存在时，以文本框的内容为主</div>
         </el-upload>
+        <div class="u-fileName" v-if="upFile">
+          <i class="el-icon-tickets"></i> <span>{{ upFile && upFile.name }}</span> <i class="el-icon-close clear-file"  @click="clearFile"></i>
+        </div>
       </div>
       <div class="u-wrap-mid">或</div>
       <div class="u-wrap">
-        <el-input class="u-textarea" type="textarea" v-model="jsonCont" placeholder="粘贴json" ></el-input>
+        <el-input class="u-textarea" type="textarea" v-model="jsonCont" placeholder="粘贴json"  @input="inputChange"></el-input>
       </div>
     </div>
     <div class="tools">
@@ -33,7 +32,10 @@
       
       <div class="r-title">
         <div class="r-t-t1">转换结果如下：</div>
-        <div class="r-t-btn">
+        <div class="r-error" v-if="jsonValidateStr">
+          {{ jsonValidateStr }}
+        </div>
+        <div class="r-t-btn" v-else>
           <el-button type="primary" size="small">下载csv<i class="el-icon-download el-icon--right"></i></el-button>
           <el-button type="primary" size="small">下载xlsx<i class="el-icon-download el-icon--right"></i></el-button>
         </div>
@@ -65,6 +67,7 @@
 </template>
 <script>
 import meComponent from '@/components/me'
+
 export default {
   name:'json',
   layout:'baseLayout',
@@ -74,7 +77,7 @@ export default {
   data(){
     return {
       fileLimitSize:1048576, // 1m
-      fileList:[],
+      upFile:null,
       jsonCont:'',
       loading:false,
       tableData: [{
@@ -94,51 +97,88 @@ export default {
         name: '王小虎',
         address: '上海市普陀区金沙江路 1516 弄'
       }],
-      showMeComonent:false
+      showMeComonent:false,
+      jsonValidateStr:''
+    }
+  },
+  created(){
+    // console.log('this.$route:',this.$route)
+    let fileLimitSize = this.$route.query.fileLimitSize
+    if(fileLimitSize && Number(fileLimitSize)){
+      this.fileLimitSize  = fileLimitSize
     }
   },
   methods:{
     contractMe(){
+      console.log('showMeComonent:',this.showMeComonent)
       this.showMeComonent = true
     },
     closeMeComonent(){
-
       this.showMeComonent = false
     },
-    
-    fileClick(event){
-      // console.log('fileClick:',event)
-      this.$refs.upload.clearFiles()
+    clearFile(){
+      console.log('clearFile')
+      this.upFile = null
     },
-    beforeUpload(file){
-      console.log('file:',file)
-      if(file.size > this.fileLimitSize){
+      
+    inputChange(){
+      if(this.jsonCont.length > this.fileLimitSize){
         this.showMeComonent = true
-        this.fileList = []
-        return false
+        this.jsonCont = ''
+        
       }
     },
-    uploadExceed(file,fileList){
-      // console.log('uploadExceed file:',file)
-      // console.log('uploadExceed fileList:',fileList)
-      this.$message.warning('一次只能上传一个json文件。请先清除上一个文件。')
+    inputUploadChange(event){
+      console.log('inputUploadChange event:',event)
+      window.event = event
+      this.upFile = event.target.files[0]
+      
     },
-
-  
-    uploadSuccess(response, file, fileList){
-      console.log('response:',response)
-      console.log('file:',file)
-      console.log('fileList:',fileList)
+    async uploadFileToServer(){
+      let params  = new FormData();
+      params .append('file',this.upFile)
+      let res = await this.$axios.post('http://localhost:7003/api/uploadJsonFile',params,{
+        headers:{
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+      return res
     },
-    uploadError(err, file, fileList){
-      this.$message.error('上传失败：',JSON.stringify(err))
-      console.log('err')
-    },
-    startConvert(){
-      console.log('开始转换')
-      if(this.fileList.length === 0 && this.jsonCont === ''){
+    async startConvert(){
+      console.log('startConvert:')
+      // 校验数据是否合法
+      if(!this.upFile && this.jsonCont === ''){
         this.$message.error('转换内容不能为空')
+        return
       }
+      if(this.upFile.size > this.fileLimitSize || this.jsonCont.length > this.fileLimitSize){
+        this.showMeComonent = true
+        return
+      }
+      // 如果文本框存在内容，则直接判断文本框中的json是否合法。否则在服务器端判断
+      if(this.jsonCont.length > 0){
+        try {
+            let result = jsonlint.parse(this.jsonCont);
+            if (result) {
+              // json合格
+              console.log('json合格')
+              // 通过校验后，开始上传文件
+              let res = await this.uploadFileToServer()
+              console.log('res:',res)
+
+            }
+          } catch(e) {
+            this.jsonValidateStr = e.toString()
+            console.log('jsonValidateStr:',this.jsonValidateStr)
+          }
+      }else {
+        let res = await this.uploadFileToServer()
+        console.log('res:',res)
+      }
+      
+      
+      
+
     }
   }
 }
@@ -160,12 +200,22 @@ export default {
       width: @width;
       min-height: @height; 
       flex-shrink: 0;
+      position: relative;
+      .u-file{
+        position: absolute;
+        top:0;
+        left: 0;
+        width: 390px;
+        height: 100px;
+        opacity: 0;
+      }
       .upload-item{
-     
+        
         .upload-btn{
           width: @width;
           height: @height;
           font-size: 28px;
+          pointer-events: none;
         }
         .upload-tip{
           margin-top:12px;
@@ -176,10 +226,24 @@ export default {
           }
         }
       }
+      .u-fileName{
+        color:#606266;
+        margin-top: 10px;
+        .clear-file{
+          cursor: pointer;
+          margin-left: 10px;
+        }
+        span{
+          margin-left: 3px;
+        }
+        &:hover{
+          color:#409eff;
+        }
+      }
       .u-textarea{
         width: @width;
         min-height: @height;
-        /deep/ .el-textarea__inner{
+        :deep(.el-textarea__inner){
           width: @width;
           height: @height;
         }

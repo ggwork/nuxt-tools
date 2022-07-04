@@ -15,7 +15,7 @@ export default {
       { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }
     ],
     script:[
-      // {src:'https://js-1300661199.cos.ap-beijing.myqcloud.com/myWebUrls.js?v=1'}
+      {src:'https://js-1300661199.cos.ap-beijing.myqcloud.com/jsonlint.js'},
       {src:'static/baidu.js'}
     ]
   },

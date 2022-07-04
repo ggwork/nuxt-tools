@@ -9,7 +9,7 @@
         免费额度是1M，大于1M可以联系我，我这边给你人工转换。微信：guo330504，或扫下面二维码。
       </div>
       <div class="m-qr">
-        <img src="https://qr-1300661199.cos.ap-beijing.myqcloud.com/qr.jpg" alt="微信二维码" srcset="">
+        <img src="https://qr-1300661199.cos.ap-beijing.myqcloud.com/qr.png" alt="微信二维码" srcset="">
       </div>
     </div>
   </div>
@@ -40,6 +40,7 @@ export default {
   height: 100%;
   top: 0;
   left: 0;
+  z-index: 100;
   .m-wrap{
     width: 600px;
     border-radius: 8px;
@@ -68,6 +69,7 @@ export default {
       margin-top: 10px;
       img{
         width: 300px;
+        height: 300px;
       }
     }
   }
