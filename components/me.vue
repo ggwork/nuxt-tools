@@ -6,7 +6,7 @@
         <i class="el-icon-close" @click="closeMe"></i>
       </div>
       <div class="m-cont">
-        免费额度是1M，大于1M可以联系我，我这边给你人工转换。微信：guo330504，或扫下面二维码。
+        免费额度是500k，大于1M可以联系我，我这边给你人工转换。微信：guo330504，或扫下面二维码。
       </div>
       <div class="m-qr">
         <img src="https://qr-1300661199.cos.ap-beijing.myqcloud.com/qr.png" alt="微信二维码" srcset="">

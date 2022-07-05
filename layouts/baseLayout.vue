@@ -27,7 +27,7 @@ export default {
 .mbody{
   width: 1200px;
   margin: auto;
-  min-height: calc(100vh - 70px - 100px);
+  min-height: calc(100vh - 70px - 120px);
 }
 .mfooter{
   background: rgba(246,246,246)

@@ -12,13 +12,14 @@
           :limit='1'
           :auto-upload="true">
           <el-button class="upload-btn" slot="trigger" size="small" type="primary">选取json文件<i class="el-icon-upload el-icon--right"></i></el-button>
-          <div class="upload-tip" slot="tip">1.只能上传.json文件，超过1M，<span @click="contractMe">点这里</span></div>
+          <div class="upload-tip" slot="tip">1.只能上传.json文件，超过500k，<span @click="contractMe">点这里</span></div>
           <div class="upload-tip" slot="tip">2.支持转换成csv或者xlsx(Excel)</div>
           <div class="upload-tip" slot="tip">3.当文件和文本框同时存在时，以文本框的内容为主</div>
         </el-upload>
         <div class="u-fileName" v-if="upFile">
           <i class="el-icon-tickets"></i> <span>{{ upFile && upFile.name }}</span> <i class="el-icon-close clear-file"  @click="clearFile"></i>
         </div>
+        
       </div>
       <div class="u-wrap-mid">或</div>
       <div class="u-wrap">
@@ -28,36 +29,32 @@
     <div class="tools">
       <el-button type="primary" :loading="loading" @click="startConvert">开始转换</el-button>
     </div>
-    <div class="result">
+    <div class="result"  v-if="tableData.length > 0 || jsonValidateStr ">
       
       <div class="r-title">
         <div class="r-t-t1">转换结果如下：</div>
-        <div class="r-error" v-if="jsonValidateStr">
-          {{ jsonValidateStr }}
-        </div>
-        <div class="r-t-btn" v-else>
+        
+        <div class="r-t-btn" v-if="!jsonValidateStr">
           <el-button type="primary" size="small">下载csv<i class="el-icon-download el-icon--right"></i></el-button>
           <el-button type="primary" size="small">下载xlsx<i class="el-icon-download el-icon--right"></i></el-button>
         </div>
       </div>
-      <div class="r-cont">
-        <el-table
+      <div class="r-error" v-if="jsonValidateStr">
+          {{ jsonValidateStr }}
+        </div>
+      <div class="r-cont" v-else>
+        <el-table 
           :data="tableData"
           border
-          style="width: 100%">
-          <el-table-column
-            prop="date"
-            label="日期"
-            width="180">
-          </el-table-column>
-          <el-table-column
-            prop="name"
-            label="姓名"
-            width="180">
-          </el-table-column>
-          <el-table-column
-            prop="address"
-            label="地址">
+          max-height="400"
+          >
+          <el-table-column 
+            v-for="title in tableTitleList"
+            :prop="title"
+            :label="title"
+            :key = "title"
+            min-width="120"
+            >
           </el-table-column>
         </el-table>
       </div>
@@ -67,7 +64,6 @@
 </template>
 <script>
 import meComponent from '@/components/me'
-
 export default {
   name:'json',
   layout:'baseLayout',
@@ -76,29 +72,15 @@ export default {
   },
   data(){
     return {
-      fileLimitSize:1048576, // 1m
+      fileLimitSize:512000, // 500k
       upFile:null,
       jsonCont:'',
       loading:false,
-      tableData: [{
-        date: '2016-05-02',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1518 弄'
-      }, {
-        date: '2016-05-04',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1517 弄'
-      }, {
-        date: '2016-05-01',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1519 弄'
-      }, {
-        date: '2016-05-03',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1516 弄'
-      }],
+      tableData: [],
       showMeComonent:false,
-      jsonValidateStr:''
+      jsonValidateStr:``,
+      tableTitleList:[],
+      loadingHandler:null
     }
   },
   created(){
@@ -109,6 +91,17 @@ export default {
     }
   },
   methods:{
+    changeResDataToTableData(res){
+      let titleArr = res.shift()
+      this.tableTitleList = titleArr
+      return res.map(itemArr=>{
+        let temp = {}
+        itemArr.forEach((value,index)=>{
+          temp[titleArr[index]] = value
+        })
+        return temp
+      })
+    },
     contractMe(){
       console.log('showMeComonent:',this.showMeComonent)
       this.showMeComonent = true
@@ -129,42 +122,78 @@ export default {
       }
     },
     inputUploadChange(event){
-      console.log('inputUploadChange event:',event)
-      window.event = event
+      // console.log('inputUploadChange event:',event)
       this.upFile = event.target.files[0]
       
     },
     async uploadFileToServer(){
       let params  = new FormData();
-      params .append('file',this.upFile)
-      let res = await this.$axios.post('http://localhost:7003/api/uploadJsonFile',params,{
+      params.append('file',this.upFile)
+      let res = await this.$axios({
+        method:'post',
+        url:'/api/uploadJsonFile',
+        data:params,
         headers:{
-          'Content-Type': 'multipart/form-data'
+          'Content-Type': 'multipart/form-data',
         }
       })
       return res
+      
+    },
+    async uploadJsonContToServer(){
+      let res = this.$axios({
+        method:'post',
+        url:'/api/uploadJsonContToServer',
+        data:{jsonCont:this.jsonCont},
+      })
+      return res  
+    },
+    async dealRes(res){
+      if(res.code === -2){
+        this.jsonValidateStr = res.msg
+      }else if(res.code === -1){
+        this.$message.error(`${res.code}:${res.msg}`)
+      }else if(res.code === 0){
+        // 返回正确
+        this.tableData = this.changeResDataToTableData(res.data.arr)
+      }
+    },
+    closeLoading(){
+      this.loadingHandler && this.loadingHandler.close()
     },
     async startConvert(){
-      console.log('startConvert:')
       // 校验数据是否合法
       if(!this.upFile && this.jsonCont === ''){
         this.$message.error('转换内容不能为空')
         return
       }
-      if(this.upFile.size > this.fileLimitSize || this.jsonCont.length > this.fileLimitSize){
+      if(this.upFile && this.upFile.size > this.fileLimitSize){
+        this.showMeComonent = true
+        return
+      }else if(this.jsonCont && this.jsonCont.length > this.fileLimitSize){
         this.showMeComonent = true
         return
       }
-      // 如果文本框存在内容，则直接判断文本框中的json是否合法。否则在服务器端判断
+      // 清空之前转换的内容
+      this.tableData = []
+      // 显示loading
+      this.loadingHandler = this.$loading({
+        lock: true,
+        text: '努力请求中',
+        spinner: 'el-icon-loading',
+        background: 'rgba(0, 0, 0, 0.7)'
+      })
+      // 如果文本框存在内容，则直接判断文本框中的json是否合法。如果文本框有内容且合法，则以文本框内容为主，忽略json文件
       if(this.jsonCont.length > 0){
         try {
             let result = jsonlint.parse(this.jsonCont);
             if (result) {
-              // json合格
-              console.log('json合格')
               // 通过校验后，开始上传文件
-              let res = await this.uploadFileToServer()
-              console.log('res:',res)
+
+              let res = await this.uploadJsonContToServer()
+              // console.log('res1:',res)
+              this.dealRes(res)
+              this.closeLoading()
 
             }
           } catch(e) {
@@ -173,7 +202,13 @@ export default {
           }
       }else {
         let res = await this.uploadFileToServer()
-        console.log('res:',res)
+        this.dealRes(res)
+        this.closeLoading()
+        // console.log('res2:',res)
+        // if(res.code === -2){
+        //   this.jsonValidateStr = res.msg
+        // }
+        
       }
       
       
@@ -248,6 +283,10 @@ export default {
           height: @height;
         }
       }
+      .u-error{
+        color: red;
+        margin-top:20px;
+      }
     }
     .u-wrap-mid{
       height: @height;
@@ -270,6 +309,10 @@ export default {
       .r-t-btn{
         margin-left:20px;
       }
+    }
+    .r-error{
+      color:red;
+      margin-top:20px;
     }
     .r-cont{
       margin: 20px 0px;
