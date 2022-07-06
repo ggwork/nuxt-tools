@@ -39,7 +39,7 @@ export default {
   buildModules: [
   ],
   axios:{
-    baseURL:'http://localhost:7003',
+    baseURL:process.env.baseUrl,
     proxy: true
   },
   proxy: {
