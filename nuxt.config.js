@@ -16,7 +16,7 @@ export default {
     ],
     script:[
       {src:'https://js-1300661199.cos.ap-beijing.myqcloud.com/jsonlint.js'},
-      {src:'static/baidu.js'}
+      {src:'baidu.js'}
     ]
   },
 
@@ -59,5 +59,15 @@ export default {
 
   // Build Configuration: https://go.nuxtjs.dev/config-build
   build: {
-  }
+  },
+  // 以下配置不起作用
+  // router:{
+  //   mode: 'hash',
+  //   extendRoutes(routes,resolve){
+  //     routes.push({
+  //       path:'/',
+  //       redirect:{name:'json'}
+  //     })
+  //   }
+  // }
 }

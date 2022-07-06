@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "cross-env baseUrl=http://localhost:7003/ nuxt --port 3003 ",
-    "build": "cross-env http://stools.moyutime.cn/ nuxt build ",
-    "start": "cross-env http://stools.moyutime.cn/ nuxt start --port 3003",
+    "build": "cross-env baseUrl=http://stools.moyutime.cn/ nuxt build",
+    "start": "cross-env baseUrl=http://stools.moyutime.cn/ nuxt start --port 3003",
     "generate": "nuxt generate",
     "test": "jest"
   },

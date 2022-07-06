@@ -1,12 +1,12 @@
 <template>
   <div class="mheader">
     <div class="mh-container">
-      <div class="h-name">
+      <div class="h-name" @click="gotoSy">
         墨鱼工具
       </div>
       <div class="h-menu">
         <ul>
-          <li>JSON转换</li>
+          <li v-for="item in links" @click="gotoWeb(item)">{{ item.name }}</li>
         </ul>
       </div>
     </div>
@@ -17,12 +17,22 @@ export default {
   name:'mHeader',
   data(){
     return {
-      activeIndex:0
+      activeIndex:0,
+      links:[
+        {
+          name:'JSON装Excel',
+          url:'/json',
+          type:''
+        }
+      ]
     }
   },
   methods:{
-    handleSelect(){
-
+    gotoSy(){
+      this.$router.push({path:'/'})
+    },
+    gotoWeb(item){
+      this.$router.push({path:item.url})
     }
   }
 }
@@ -48,6 +58,7 @@ export default {
       height: 70px;
       line-height: 70px;
       font-size: 30px;
+      cursor: pointer;
     }
     .h-menu{
       margin-left:60px;
