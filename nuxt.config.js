@@ -38,19 +38,6 @@ export default {
   // Modules for dev and build (recommended): https://go.nuxtjs.dev/config-modules
   buildModules: [
   ],
-  axios:{
-    baseURL:process.env.baseUrl,
-    proxy: true
-  },
-  proxy: {
-    '/api': {
-      changeOrigin: true,
-      target: 'http://localhost:7003', // 允许跨域的服务器地址
-      // pathRewrite: {
-      //   '^/api': ''
-      // }
-    }
-  },
   // Modules: https://go.nuxtjs.dev/config-modules
   modules: [
     '@nuxtjs/axios',
@@ -59,6 +46,9 @@ export default {
 
   // Build Configuration: https://go.nuxtjs.dev/config-build
   build: {
+  },
+  env: {
+    baseUrl: process.env.baseUrl,
   },
   // 以下配置不起作用
   // router:{

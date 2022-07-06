@@ -86,7 +86,7 @@ export default {
     }
   },
   created(){
-    // console.log('this.$route:',this.$route)
+    // console.log('process.env.baseUrl:',process.env.baseUrl)
     let fileLimitSize = this.$route.query.fileLimitSize
     if(fileLimitSize && Number(fileLimitSize)){
       this.fileLimitSize  = fileLimitSize
