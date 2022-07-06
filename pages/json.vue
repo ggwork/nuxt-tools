@@ -35,8 +35,8 @@
         <div class="r-t-t1">转换结果如下：</div>
         
         <div class="r-t-btn" v-if="!jsonValidateStr">
-          <el-button type="primary" size="small">下载csv<i class="el-icon-download el-icon--right"></i></el-button>
-          <el-button type="primary" size="small">下载xlsx<i class="el-icon-download el-icon--right"></i></el-button>
+          <el-button type="primary" size="small" @click="downFile(csvUrl)">下载csv<i class="el-icon-download el-icon--right"></i></el-button>
+          <el-button type="primary" size="small" @click="downFile(excelUrl)">下载xlsx<i class="el-icon-download el-icon--right"></i></el-button>
         </div>
       </div>
       <div class="r-error" v-if="jsonValidateStr">
@@ -80,7 +80,9 @@ export default {
       showMeComonent:false,
       jsonValidateStr:``,
       tableTitleList:[],
-      loadingHandler:null
+      loadingHandler:null,
+      csvUrl:'',
+      excelUrl:''
     }
   },
   created(){
@@ -105,6 +107,15 @@ export default {
     contractMe(){
       console.log('showMeComonent:',this.showMeComonent)
       this.showMeComonent = true
+    },
+    downFile(url){
+      const el = document.createElement('a');
+      el.style.display = 'none';
+      el.setAttribute('target', '_blank')
+      el.href = url;
+      document.body.appendChild(el);
+      el.click();
+      document.body.removeChild(el);
     },
     closeMeComonent(){
       this.showMeComonent = false
@@ -156,10 +167,13 @@ export default {
       }else if(res.code === 0){
         // 返回正确
         this.tableData = this.changeResDataToTableData(res.data.arr)
+        this.csvUrl = res.data.csvUrl
+        this.excelUrl = res.data.excelUrl
       }
     },
     closeLoading(){
       this.loadingHandler && this.loadingHandler.close()
+      this.loading = false
     },
     async startConvert(){
       // 校验数据是否合法
@@ -175,14 +189,18 @@ export default {
         return
       }
       // 清空之前转换的内容
-      this.tableData = []
-      // 显示loading
-      this.loadingHandler = this.$loading({
-        lock: true,
-        text: '努力请求中',
-        spinner: 'el-icon-loading',
-        background: 'rgba(0, 0, 0, 0.7)'
-      })
+      // this.tableData = []
+      // // 显示loading
+      // this.loadingHandler = this.$loading({
+      //   lock: true,
+      //   text: '努力请求中',
+      //   spinner: 'el-icon-loading',
+      //   background: 'rgba(0, 0, 0, 0.7)',
+      //   fullscreen:false,
+      // })
+      this.loading = true
+      this.jsonValidateStr = ''
+      
       // 如果文本框存在内容，则直接判断文本框中的json是否合法。如果文本框有内容且合法，则以文本框内容为主，忽略json文件
       if(this.jsonCont.length > 0){
         try {
@@ -199,6 +217,7 @@ export default {
           } catch(e) {
             this.jsonValidateStr = e.toString()
             console.log('jsonValidateStr:',this.jsonValidateStr)
+            this.closeLoading()
           }
       }else {
         let res = await this.uploadFileToServer()
