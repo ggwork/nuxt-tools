@@ -11,3 +11,10 @@ nuxt start	以生产模式启动一个 Web 服务器 (需要先执行nuxt build)
 nuxt generate	编译应用，并依据路由配置生成对应的 HTML 文件 (用于静态站点的部署)。
 
 
+#### pm2 启动命令
+
+```shell
+pm2 start "C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js" --name "xxx" -- run start
+```
+
+
