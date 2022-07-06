@@ -16,7 +16,8 @@ export default {
     ],
     script:[
       {src:'https://js-1300661199.cos.ap-beijing.myqcloud.com/jsonlint.js'},
-      {src:'baidu.js'}
+      {src:'baidu.js'},
+      {src:'main.js'}
     ]
   },
 
