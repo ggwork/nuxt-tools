@@ -119,6 +119,10 @@ export default {
       console.log('showMeComonent:',this.showMeComonent)
       this.showMeComonent = true
     },
+    getFileUrlByContent(textArray,fileName,mimeType){
+      let file = new File(textArray, fileName, {type: mimeType})
+      return URL.createObjectURL(file)
+    },
     downFile(url){
       const el = document.createElement('a');
       el.style.display = 'none';
@@ -143,19 +147,23 @@ export default {
       })
       cont = '\uFEFF'+cont.join('\n')
       let fileName = this.today + '-' + this.randomStr()+'.csv'
-      let res = await this.$axios({
-        method:'post',
-        url:'/api/uploadFileToOss',
-        data:{
-          fileName,
-          cont
-        }
-      })
-      if(res.code === 0){
-        this.downFile(res.data)
-      }else {
-        this.$message.error(`请求失败,${res.msg}`)
-      }
+
+      let url = this.getFileUrlByContent([cont],fileName,'text/csv')
+      this.downFile(url)
+      
+      // let res = await this.$axios({
+      //   method:'post',
+      //   url:'/api/uploadFileToOss',
+      //   data:{
+      //     fileName,
+      //     cont
+      //   }
+      // })
+      // if(res.code === 0){
+      //   this.downFile(res.data)
+      // }else {
+      //   this.$message.error(`请求失败,${res.msg}`)
+      // }
     },
     async downExcelFile(){
       if(!this.resJsonArr){
@@ -184,6 +192,7 @@ export default {
     closeMeComonent(){
       this.showMeComonent = false
     },
+    
     clearFile(){
       console.log('clearFile')
       this.upFile = null
@@ -199,41 +208,7 @@ export default {
     inputUploadChange(event){
       // console.log('inputUploadChange event:',event)
       this.upFile = event.target.files[0]
-      
     },
-    // async uploadFileToServer(){
-    //   let params  = new FormData();
-    //   params.append('file',this.upFile)
-    //   let res = await this.$axios({
-    //     method:'post',
-    //     url:'/api/uploadJsonFile',
-    //     data:params,
-    //     headers:{
-    //       'Content-Type': 'multipart/form-data',
-    //     }
-    //   })
-    //   return res
-    // },
-    // async uploadJsonContToServer(){
-    //   let res = this.$axios({
-    //     method:'post',
-    //     url:'/api/uploadJsonContToServer',
-    //     data:{jsonCont:this.jsonCont},
-    //   })
-    //   return res  
-    // },
-    // async dealRes(res){
-    //   if(res.code === -2){
-    //     this.jsonValidateStr = res.msg
-    //   }else if(res.code === -1){
-    //     this.$message.error(`${res.code}:${res.msg}`)
-    //   }else if(res.code === 0){
-    //     // 返回正确
-    //     this.tableData = this.changeResDataToTableData(res.data.arr)
-    //     this.csvUrl = res.data.csvUrl
-    //     this.excelUrl = res.data.excelUrl
-    //   }
-    // },
     closeLoading(){
       this.loadingHandler && this.loadingHandler.close()
       this.loading = false
