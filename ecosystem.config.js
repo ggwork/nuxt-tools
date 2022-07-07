@@ -4,8 +4,8 @@ module.exports = {
       name: 'nuxt-tools',
       exec_mode: 'cluster',
       instances: '1', // Or a number of instances
-      script: 'cross-env baseUrl=http://stools.moyutime.cn/ --port 3003./node_modules/nuxt/bin/nuxt.js ',
-      args: 'start',
+      script: './node_modules/nuxt/bin/nuxt.js',
+      args: 'start --baseUrl=http://stools.moyutime.cn/ --port=3003',
       // watch: true, // watch: './',
       // // // 不用监听的文件
       // ignore_watch: [
