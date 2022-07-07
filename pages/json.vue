@@ -35,8 +35,8 @@
         <div class="r-t-t1">转换结果如下：</div>
         
         <div class="r-t-btn" v-if="!jsonValidateStr">
-          <el-button type="primary" size="small" @click="downCsvFile()">下载csv<i class="el-icon-download el-icon--right"></i></el-button>
-          <el-button type="primary" size="small" @click="downExcelFile()">下载xlsx<i class="el-icon-download el-icon--right"></i></el-button>
+          <el-button type="primary" size="small" :loading="csvLoading"  @click="downCsvFile()">下载csv<i class="el-icon-download el-icon--right"></i></el-button>
+          <el-button type="primary" size="small" :loading="excelLoading"  @click="downExcelFile()">下载xlsx<i class="el-icon-download el-icon--right"></i></el-button>
         </div>
       </div>
       <div class="r-tip" v-if="tableData.length > 0">
@@ -67,6 +67,7 @@
 </template>
 <script>
 import meComponent from '@/components/me'
+import * as XLSX from 'xlsx/xlsx.mjs'
 export default {
   name:'json',
   layout:'baseLayout',
@@ -85,6 +86,8 @@ export default {
       tableTitleList:[],
       loadingHandler:null,
       resJsonArr:null,
+      csvLoading:false,
+      excelLoading:false
       
       // csvUrl:'',
       // excelUrl:''
@@ -119,38 +122,43 @@ export default {
       console.log('showMeComonent:',this.showMeComonent)
       this.showMeComonent = true
     },
-    getFileUrlByContent(textArray,fileName,mimeType){
-      let file = new File(textArray, fileName, {type: mimeType})
-      return URL.createObjectURL(file)
-    },
-    downFile(url){
+    downFile(url,fileName){
       const el = document.createElement('a');
       el.style.display = 'none';
       el.setAttribute('target', '_blank')
+      
       el.href = url;
+      el.download = fileName
       document.body.appendChild(el);
       el.click();
+      
       document.body.removeChild(el);
+      this.excelLoading = false
+      this.csvLoading = false
     },
     randomStr(){
       let str = Math.random().toString(36).slice(2, 10)
       return str
+    },
+    getFileUrlByContent(textArray,fileName,mimeType){
+      let file = new File(textArray, fileName, {type: mimeType})
+      return URL.createObjectURL(file)
     },
     async downCsvFile(){
       if(!this.resJsonArr){
         this.$message.error('json不能为空，请先转换，再下载')
         return
       }
+      this.csvLoading = true
       // 将jsonArray数据转成csv数据
       let cont = this.resJsonArr.map(iArr=>{
         return iArr.join(',')
       })
       cont = '\uFEFF'+cont.join('\n')
       let fileName = this.today + '-' + this.randomStr()+'.csv'
-
       let url = this.getFileUrlByContent([cont],fileName,'text/csv')
-      this.downFile(url)
-      
+      this.downFile(url,fileName)
+
       // let res = await this.$axios({
       //   method:'post',
       //   url:'/api/uploadFileToOss',
@@ -165,34 +173,65 @@ export default {
       //   this.$message.error(`请求失败,${res.msg}`)
       // }
     },
+    // 将一个sheet转成最终的excel文件的blob对象，然后利用URL.createObjectURL下载
+    sheet2blobUrl(sheet, sheetName) {
+      sheetName = sheetName || 'sheet1';
+      var workbook = {
+        SheetNames: [sheetName],
+        Sheets: {}
+      };
+      workbook.Sheets[sheetName] = sheet;
+      // 生成excel的配置项
+      var wopts = {
+        bookType: 'xlsx', // 要生成的文件类型
+        bookSST: false, // 是否生成Shared String Table，官方解释是，如果开启生成速度会下降，但在低版本IOS设备上有更好的兼容性
+        type: 'binary'
+      };
+      var wbout = XLSX.write(workbook, wopts);
+      var blob = new Blob([s2ab(wbout)], {type:"application/octet-stream"});
+      // 字符串转ArrayBuffer
+      function s2ab(s) {
+        var buf = new ArrayBuffer(s.length);
+        var view = new Uint8Array(buf);
+        for (var i=0; i!=s.length; ++i) view[i] = s.charCodeAt(i) & 0xFF;
+        return buf;
+      }
+      let url = URL.createObjectURL(blob)
+      return url;
+    },
     async downExcelFile(){
       if(!this.resJsonArr){
         this.$message.error('json为空，请先转换，再下载')
         return
       }
+      this.excelLoading = true
       console.log('this.upFile:',this.upFile)
       let originFileName = this.upFile && this.upFile.name
       let lastIndex = originFileName && originFileName.lastIndexOf('.')
-      let fileName = originFileName && originFileName.slice(0,lastIndex) || this.today + '-' + this.randomStr()+'.xlsx' 
-      let res = await this.$axios({
-        method:'post',
-        url:'/api/jsonArrToExecl',
-        data:{
-          fileName,
-          cont:this.resJsonArr
-        }
-      })
-      if(res.code === 0){
-        this.downFile(res.data)
-      }else {
-        this.$message.error(`请求失败,${res.msg}`)
-      }
+      let fileName = (originFileName && originFileName.slice(0,lastIndex) || this.today + '-' + this.randomStr() )+'.xlsx' 
+
+      var sheet = XLSX.utils.aoa_to_sheet(this.resJsonArr);
+      let url = this.sheet2blobUrl(sheet)
+      this.downFile(url,fileName)
+
+      // let res = await this.$axios({
+      //   method:'post',
+      //   url:'/api/jsonArrToExecl',
+      //   data:{
+      //     fileName,
+      //     cont:this.resJsonArr
+      //   }
+      // })
+      // if(res.code === 0){
+      //   this.downFile(res.data)
+      // }else {
+      //   this.$message.error(`请求失败,${res.msg}`)
+      // }
       
     },
     closeMeComonent(){
       this.showMeComonent = false
     },
-    
     clearFile(){
       console.log('clearFile')
       this.upFile = null
@@ -208,7 +247,41 @@ export default {
     inputUploadChange(event){
       // console.log('inputUploadChange event:',event)
       this.upFile = event.target.files[0]
+      
     },
+    // async uploadFileToServer(){
+    //   let params  = new FormData();
+    //   params.append('file',this.upFile)
+    //   let res = await this.$axios({
+    //     method:'post',
+    //     url:'/api/uploadJsonFile',
+    //     data:params,
+    //     headers:{
+    //       'Content-Type': 'multipart/form-data',
+    //     }
+    //   })
+    //   return res
+    // },
+    // async uploadJsonContToServer(){
+    //   let res = this.$axios({
+    //     method:'post',
+    //     url:'/api/uploadJsonContToServer',
+    //     data:{jsonCont:this.jsonCont},
+    //   })
+    //   return res  
+    // },
+    // async dealRes(res){
+    //   if(res.code === -2){
+    //     this.jsonValidateStr = res.msg
+    //   }else if(res.code === -1){
+    //     this.$message.error(`${res.code}:${res.msg}`)
+    //   }else if(res.code === 0){
+    //     // 返回正确
+    //     this.tableData = this.changeResDataToTableData(res.data.arr)
+    //     this.csvUrl = res.data.csvUrl
+    //     this.excelUrl = res.data.excelUrl
+    //   }
+    // },
     closeLoading(){
       this.loadingHandler && this.loadingHandler.close()
       this.loading = false
