@@ -3,7 +3,7 @@
   <div class="json">
     <div class="upload">
       <div class="u-wrap">
-        <input type="file" name="file" class="u-file" @change="inputUploadChange" accept=".json" />
+        <input ref="originFileInput" type="file" name="file" class="u-file" @change="inputUploadChange" accept=".json" />
         <el-upload
           action=""
           class="upload-item"
@@ -29,15 +29,18 @@
     <div class="tools">
       <el-button type="primary" :loading="loading" @click="startConvert">开始转换</el-button>
     </div>
-    <div class="result"  v-if="tableData.length > 0 || jsonValidateStr ">
+    <div class="result"  v-if="tableData.length > 0 || jsonValidateStr">
       
       <div class="r-title">
         <div class="r-t-t1">转换结果如下：</div>
         
         <div class="r-t-btn" v-if="!jsonValidateStr">
-          <el-button type="primary" size="small" @click="downFile(csvUrl)">下载csv<i class="el-icon-download el-icon--right"></i></el-button>
-          <el-button type="primary" size="small" @click="downFile(excelUrl)">下载xlsx<i class="el-icon-download el-icon--right"></i></el-button>
+          <el-button type="primary" size="small" @click="downCsvFile()">下载csv<i class="el-icon-download el-icon--right"></i></el-button>
+          <el-button type="primary" size="small" @click="downExcelFile()">下载xlsx<i class="el-icon-download el-icon--right"></i></el-button>
         </div>
+      </div>
+      <div class="r-tip" v-if="tableData.length > 0">
+        当数据超过1000行的时候,为了提升性能，1000行后的数据将不再显示。需要查看的话，可以下载CSV或者EXCEL，推荐EXCEL。
       </div>
       <div class="r-error" v-if="jsonValidateStr">
           {{ jsonValidateStr }}
@@ -81,15 +84,23 @@ export default {
       jsonValidateStr:``,
       tableTitleList:[],
       loadingHandler:null,
-      csvUrl:'',
-      excelUrl:''
+      resJsonArr:null,
+      
+      // csvUrl:'',
+      // excelUrl:''
     }
   },
   created(){
-    // console.log('this.$route:',this.$route)
+    // console.log('process.env.baseUrl:',process.env.baseUrl)
     let fileLimitSize = this.$route.query.fileLimitSize
     if(fileLimitSize && Number(fileLimitSize)){
       this.fileLimitSize  = fileLimitSize
+    }
+  },
+  computed:{
+    today(){
+      let date = new Date()
+      return date.getFullYear() + '-' + (date.getMonth()+1) + '-' + date.getDate()
     }
   },
   methods:{
@@ -117,19 +128,72 @@ export default {
       el.click();
       document.body.removeChild(el);
     },
+    randomStr(){
+      let str = Math.random().toString(36).slice(2, 10)
+      return str
+    },
+    async downCsvFile(){
+      if(!this.resJsonArr){
+        this.$message.error('json不能为空，请先转换，再下载')
+        return
+      }
+      // 将jsonArray数据转成csv数据
+      let cont = this.resJsonArr.map(iArr=>{
+        return iArr.join(',')
+      })
+      cont = '\uFEFF'+cont.join('\n')
+      let fileName = this.today + '-' + this.randomStr()+'.csv'
+      let res = await this.$axios({
+        method:'post',
+        url:'/api/uploadFileToOss',
+        data:{
+          fileName,
+          cont
+        }
+      })
+      if(res.code === 0){
+        this.downFile(res.data)
+      }else {
+        this.$message.error(`请求失败,${res.msg}`)
+      }
+    },
+    async downExcelFile(){
+      if(!this.resJsonArr){
+        this.$message.error('json为空，请先转换，再下载')
+        return
+      }
+      console.log('this.upFile:',this.upFile)
+      let originFileName = this.upFile && this.upFile.name
+      let lastIndex = originFileName && originFileName.lastIndexOf('.')
+      let fileName = originFileName && originFileName.slice(0,lastIndex) || this.today + '-' + this.randomStr()+'.xlsx' 
+      let res = await this.$axios({
+        method:'post',
+        url:'/api/jsonArrToExecl',
+        data:{
+          fileName,
+          cont:this.resJsonArr
+        }
+      })
+      if(res.code === 0){
+        this.downFile(res.data)
+      }else {
+        this.$message.error(`请求失败,${res.msg}`)
+      }
+      
+    },
     closeMeComonent(){
       this.showMeComonent = false
     },
     clearFile(){
       console.log('clearFile')
       this.upFile = null
+      this.$refs.originFileInput.value = ''
     },
       
     inputChange(){
       if(this.jsonCont.length > this.fileLimitSize){
         this.showMeComonent = true
         this.jsonCont = ''
-        
       }
     },
     inputUploadChange(event){
@@ -137,43 +201,64 @@ export default {
       this.upFile = event.target.files[0]
       
     },
-    async uploadFileToServer(){
-      let params  = new FormData();
-      params.append('file',this.upFile)
-      let res = await this.$axios({
-        method:'post',
-        url:'/api/uploadJsonFile',
-        data:params,
-        headers:{
-          'Content-Type': 'multipart/form-data',
-        }
-      })
-      return res
-      
-    },
-    async uploadJsonContToServer(){
-      let res = this.$axios({
-        method:'post',
-        url:'/api/uploadJsonContToServer',
-        data:{jsonCont:this.jsonCont},
-      })
-      return res  
-    },
-    async dealRes(res){
-      if(res.code === -2){
-        this.jsonValidateStr = res.msg
-      }else if(res.code === -1){
-        this.$message.error(`${res.code}:${res.msg}`)
-      }else if(res.code === 0){
-        // 返回正确
-        this.tableData = this.changeResDataToTableData(res.data.arr)
-        this.csvUrl = res.data.csvUrl
-        this.excelUrl = res.data.excelUrl
-      }
-    },
+    // async uploadFileToServer(){
+    //   let params  = new FormData();
+    //   params.append('file',this.upFile)
+    //   let res = await this.$axios({
+    //     method:'post',
+    //     url:'/api/uploadJsonFile',
+    //     data:params,
+    //     headers:{
+    //       'Content-Type': 'multipart/form-data',
+    //     }
+    //   })
+    //   return res
+    // },
+    // async uploadJsonContToServer(){
+    //   let res = this.$axios({
+    //     method:'post',
+    //     url:'/api/uploadJsonContToServer',
+    //     data:{jsonCont:this.jsonCont},
+    //   })
+    //   return res  
+    // },
+    // async dealRes(res){
+    //   if(res.code === -2){
+    //     this.jsonValidateStr = res.msg
+    //   }else if(res.code === -1){
+    //     this.$message.error(`${res.code}:${res.msg}`)
+    //   }else if(res.code === 0){
+    //     // 返回正确
+    //     this.tableData = this.changeResDataToTableData(res.data.arr)
+    //     this.csvUrl = res.data.csvUrl
+    //     this.excelUrl = res.data.excelUrl
+    //   }
+    // },
     closeLoading(){
       this.loadingHandler && this.loadingHandler.close()
       this.loading = false
+    },
+    async validateAndConvertInputJsonData(jsonCont){
+      try {
+        // 装成字符串，便于parse解析
+        if(Object.prototype.toString.call(jsonCont) === '[object Object]'){
+          jsonCont = JSON.stringify(jsonCont)
+        }
+        let result = jsonlint.parse(jsonCont);
+        if (result) {
+          // 通过校验后，开始上传文件
+          this.closeLoading()
+          let resJsonArr = await startConvertJsonToArray(jsonCont)
+          this.resJsonArr = resJsonArr
+          // console.log('resJsonArr:',resJsonArr)
+          let sliceResJsonArr = resJsonArr.slice(0,1000)
+          this.tableData = this.changeResDataToTableData(sliceResJsonArr)
+        }
+      } catch(e) {
+        this.jsonValidateStr = e.toString()
+        console.log('jsonValidateStr:',this.jsonValidateStr)
+        this.closeLoading()
+      }
     },
     async startConvert(){
       // 校验数据是否合法
@@ -189,50 +274,24 @@ export default {
         return
       }
       // 清空之前转换的内容
-      // this.tableData = []
-      // // 显示loading
-      // this.loadingHandler = this.$loading({
-      //   lock: true,
-      //   text: '努力请求中',
-      //   spinner: 'el-icon-loading',
-      //   background: 'rgba(0, 0, 0, 0.7)',
-      //   fullscreen:false,
-      // })
+      this.tableData = []
+      
       this.loading = true
       this.jsonValidateStr = ''
       
       // 如果文本框存在内容，则直接判断文本框中的json是否合法。如果文本框有内容且合法，则以文本框内容为主，忽略json文件
       if(this.jsonCont.length > 0){
-        try {
-            let result = jsonlint.parse(this.jsonCont);
-            if (result) {
-              // 通过校验后，开始上传文件
-
-              let res = await this.uploadJsonContToServer()
-              // console.log('res1:',res)
-              this.dealRes(res)
-              this.closeLoading()
-
-            }
-          } catch(e) {
-            this.jsonValidateStr = e.toString()
-            console.log('jsonValidateStr:',this.jsonValidateStr)
-            this.closeLoading()
-          }
-      }else {
-        let res = await this.uploadFileToServer()
-        this.dealRes(res)
-        this.closeLoading()
-        // console.log('res2:',res)
-        // if(res.code === -2){
-        //   this.jsonValidateStr = res.msg
-        // }
+        this.validateAndConvertInputJsonData(this.jsonCont)
         
+      }else {
+       
+        let reader = new FileReader()
+        reader.readAsText(this.upFile, "UTF-8")
+        reader.onload = async (evt)=>{
+          let jsonCont = evt.target.result
+          this.validateAndConvertInputJsonData(jsonCont)
+        }
       }
-      
-      
-      
-
     }
   }
 }
@@ -328,6 +387,11 @@ export default {
       .r-t-btn{
         margin-left:20px;
       }
+    }
+    .r-tip{
+      margin-top: 20px;
+      font-size: 12px;
+      color: red;
     }
     .r-error{
       color:red;

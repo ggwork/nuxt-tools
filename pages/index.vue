@@ -3,7 +3,7 @@
   <div class="json">
     <div class="upload">
       <div class="u-wrap">
-        <input type="file" name="file" class="u-file" @change="inputUploadChange" accept=".json" />
+        <input ref="originFileInput" type="file" name="file" class="u-file" @change="inputUploadChange" accept=".json" />
         <el-upload
           action=""
           class="upload-item"
@@ -29,7 +29,7 @@
     <div class="tools">
       <el-button type="primary" :loading="loading" @click="startConvert">开始转换</el-button>
     </div>
-    <div class="result"  v-if="tableData.length > 0">
+    <div class="result"  v-if="tableData.length > 0 || jsonValidateStr">
       
       <div class="r-title">
         <div class="r-t-t1">转换结果如下：</div>
@@ -39,7 +39,7 @@
           <el-button type="primary" size="small" @click="downExcelFile()">下载xlsx<i class="el-icon-download el-icon--right"></i></el-button>
         </div>
       </div>
-      <div class="r-tip">
+      <div class="r-tip" v-if="tableData.length > 0">
         当数据超过1000行的时候,为了提升性能，1000行后的数据将不再显示。需要查看的话，可以下载CSV或者EXCEL，推荐EXCEL。
       </div>
       <div class="r-error" v-if="jsonValidateStr">
@@ -84,7 +84,8 @@ export default {
       jsonValidateStr:``,
       tableTitleList:[],
       loadingHandler:null,
-      resJsonArr:null
+      resJsonArr:null,
+      
       // csvUrl:'',
       // excelUrl:''
     }
@@ -94,6 +95,12 @@ export default {
     let fileLimitSize = this.$route.query.fileLimitSize
     if(fileLimitSize && Number(fileLimitSize)){
       this.fileLimitSize  = fileLimitSize
+    }
+  },
+  computed:{
+    today(){
+      let date = new Date()
+      return date.getFullYear() + '-' + (date.getMonth()+1) + '-' + date.getDate()
     }
   },
   methods:{
@@ -121,27 +128,58 @@ export default {
       el.click();
       document.body.removeChild(el);
     },
-    async downCsvFile(type){
+    randomStr(){
+      let str = Math.random().toString(36).slice(2, 10)
+      return str
+    },
+    async downCsvFile(){
       if(!this.resJsonArr){
-        this.$message.error('json为空，请先转换，再下载')
+        this.$message.error('json不能为空，请先转换，再下载')
         return
       }
-
+      // 将jsonArray数据转成csv数据
+      let cont = this.resJsonArr.map(iArr=>{
+        return iArr.join(',')
+      })
+      cont = '\uFEFF'+cont.join('\n')
+      let fileName = this.today + '-' + this.randomStr()+'.csv'
       let res = await this.$axios({
         method:'post',
-        url:'/api/uploadJsonArr',
+        url:'/api/uploadFileToOss',
         data:{
-          jsonArr: this.resJsonArr,
-          fileType:type
+          fileName,
+          cont
         }
       })
-      return res
+      if(res.code === 0){
+        this.downFile(res.data)
+      }else {
+        this.$message.error(`请求失败,${res.msg}`)
+      }
     },
     async downExcelFile(){
       if(!this.resJsonArr){
         this.$message.error('json为空，请先转换，再下载')
         return
       }
+      console.log('this.upFile:',this.upFile)
+      let originFileName = this.upFile && this.upFile.name
+      let lastIndex = originFileName && originFileName.lastIndexOf('.')
+      let fileName = originFileName && originFileName.slice(0,lastIndex) || this.today + '-' + this.randomStr()+'.xlsx' 
+      let res = await this.$axios({
+        method:'post',
+        url:'/api/jsonArrToExecl',
+        data:{
+          fileName,
+          cont:this.resJsonArr
+        }
+      })
+      if(res.code === 0){
+        this.downFile(res.data)
+      }else {
+        this.$message.error(`请求失败,${res.msg}`)
+      }
+      
     },
     closeMeComonent(){
       this.showMeComonent = false
@@ -149,6 +187,7 @@ export default {
     clearFile(){
       console.log('clearFile')
       this.upFile = null
+      this.$refs.originFileInput.value = ''
     },
       
     inputChange(){
