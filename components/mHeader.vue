@@ -20,7 +20,7 @@ export default {
       activeIndex:0,
       links:[
         {
-          name:'Json装Excel',
+          name:'JsonExcel',
           url:'/json',
           type:''
         },
