@@ -5,9 +5,9 @@
         墨鱼工具
       </div>
       <div class="h-menu">
-        <ul>
-          <li v-for="item in links" @click="gotoWeb(item)">{{ item.name }}</li>
-        </ul>
+        <el-menu :default-active="activeIndex" class="el-menu-demo" mode="horizontal" @select="handleSelect">
+          <el-menu-item :index="index" v-for="(item,index) in links" @click="gotoWeb(item)" :key="index">{{ item.name }}</el-menu-item>
+        </el-menu>
       </div>
     </div>
   </div>
@@ -20,10 +20,20 @@ export default {
       activeIndex:0,
       links:[
         {
-          name:'JSON装Excel',
+          name:'Json装Excel',
           url:'/json',
           type:''
-        }
+        },
+        {
+          name:'Json装Csv',
+          url:'/json',
+          type:''
+        },
+        {
+          name:'Json编辑器',
+          url:'/jsonEditor',
+          type:''
+        },
       ]
     }
   },
@@ -33,6 +43,9 @@ export default {
     },
     gotoWeb(item){
       this.$router.push({path:item.url})
+    },
+    handleSelect(key, keyPath) {
+      console.log(key, keyPath);
     }
   }
 }
@@ -66,18 +79,9 @@ export default {
       line-height: 70px; 
       color: #161616;
       cursor: pointer;
-      ul{
-        margin: 0px;
-        padding:0px;
-        li{
-          margin: 0px;
-          padding:0px;
-          list-style-type: none;
-          font-weight: 400;
-          &:hover{
-            color: #4d90fe;
-          }
-        }
+      .el-menu{
+        border: none;
+        font-weight: 600;
       }
     }
   }

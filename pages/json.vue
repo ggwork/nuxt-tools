@@ -87,7 +87,8 @@ export default {
       loadingHandler:null,
       resJsonArr:null,
       csvLoading:false,
-      excelLoading:false
+      excelLoading:false,
+      downloadTimeHandler:''
       
       // csvUrl:'',
       // excelUrl:''
@@ -133,8 +134,16 @@ export default {
       el.click();
       
       document.body.removeChild(el);
-      this.excelLoading = false
-      this.csvLoading = false
+      // this.excelLoading = false
+      console.log('this.downloadTimeHandler:',this.downloadTimeHandler)
+      if(this.downloadTimeHandler){
+        
+        window.clearTimeout(this.downloadTimeHandler)
+      }
+      this.downloadTimeHandler = setTimeout(()=>{
+        this.excelLoading = false
+        this.csvLoading = false  
+      },2000)
     },
     randomStr(){
       let str = Math.random().toString(36).slice(2, 10)
@@ -205,29 +214,13 @@ export default {
         return
       }
       this.excelLoading = true
-      console.log('this.upFile:',this.upFile)
+      // console.log('this.excelLoading:',this.excelLoading)
       let originFileName = this.upFile && this.upFile.name
       let lastIndex = originFileName && originFileName.lastIndexOf('.')
       let fileName = (originFileName && originFileName.slice(0,lastIndex) || this.today + '-' + this.randomStr() )+'.xlsx' 
-
       var sheet = XLSX.utils.aoa_to_sheet(this.resJsonArr);
       let url = this.sheet2blobUrl(sheet)
       this.downFile(url,fileName)
-
-      // let res = await this.$axios({
-      //   method:'post',
-      //   url:'/api/jsonArrToExecl',
-      //   data:{
-      //     fileName,
-      //     cont:this.resJsonArr
-      //   }
-      // })
-      // if(res.code === 0){
-      //   this.downFile(res.data)
-      // }else {
-      //   this.$message.error(`请求失败,${res.msg}`)
-      // }
-      
     },
     closeMeComonent(){
       this.showMeComonent = false
@@ -425,7 +418,10 @@ export default {
     text-align: center;
   }
   .result{
+    margin:auto;
     margin-top: 20px;
+    width: 1200px;
+  
     .r-title{
       display: flex;
       align-items: center;
