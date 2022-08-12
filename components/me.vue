@@ -6,7 +6,7 @@
         <i class="el-icon-close" @click="closeMe"></i>
       </div>
       <div class="m-cont">
-        免费额度是500k，大于此限额可以联系我，我这边给你人工转换。微信：guo330504，或扫下面二维码。
+        此功能属于收费金额，收费金额大约5-30元不等，视数据大小而定。可以接受收费的，请联系我，我这边给你人工转换。微信：guo330504，或扫下面二维码。
       </div>
       <div class="m-qr">
         <img src="https://qr-1300661199.cos.ap-beijing.myqcloud.com/qr.png" alt="微信二维码" srcset="">

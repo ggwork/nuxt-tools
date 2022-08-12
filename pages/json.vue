@@ -164,7 +164,9 @@ export default {
         return iArr.join(',')
       })
       cont = '\uFEFF'+cont.join('\n')
-      let fileName = this.today + '-' + this.randomStr()+'.csv'
+      let originFileName = this.upFile && this.upFile.name
+      let lastIndex = originFileName && originFileName.lastIndexOf('.')
+      let fileName = (originFileName && originFileName.slice(0,lastIndex) || this.today + '-' + this.randomStr() )+'.csv' 
       let url = this.getFileUrlByContent([cont],fileName,'text/csv')
       this.downFile(url,fileName)
 
@@ -287,8 +289,10 @@ export default {
         }
         let result = jsonlint.parse(jsonCont);
         if (result) {
+          // console.log('startConvertJsonToArray:',startConvertJsonToArray)
           // 通过校验后，开始上传文件
           this.closeLoading()
+          // startConvertJsonToArray是全局方法，定义在main.js中
           let resJsonArr = await startConvertJsonToArray(jsonCont)
           this.resJsonArr = resJsonArr
           // console.log('resJsonArr:',resJsonArr)

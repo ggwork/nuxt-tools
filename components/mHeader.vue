@@ -5,8 +5,8 @@
         墨鱼工具
       </div>
       <div class="h-menu">
-        <el-menu :default-active="activeIndex" class="el-menu-demo" mode="horizontal" @select="handleSelect">
-          <el-menu-item :index="index" v-for="(item,index) in links" @click="gotoWeb(item)" :key="index">{{ item.name }}</el-menu-item>
+        <el-menu :default-active="String(activeIndex)" class="el-menu-demo" mode="horizontal" @select="handleSelect">
+          <el-menu-item v-for="(item,index) in links"  @click="gotoWeb(item)" :index="String(index)"  :key="index">{{ item.name }}</el-menu-item>
         </el-menu>
       </div>
     </div>
@@ -20,20 +20,25 @@ export default {
       activeIndex:0,
       links:[
         {
-          name:'JsonExcel',
+          name:'Json转Excel',
           url:'/json',
           type:''
         },
         {
-          name:'Json装Csv',
+          name:'Json转Csv',
           url:'/json',
           type:''
         },
         {
-          name:'Json编辑器',
-          url:'/jsonEditor',
+          name:'Csv转Excel',
+          url:'/csvToExcel',
           type:''
-        },
+        }
+        // {
+        //   name:'Json编辑器',
+        //   url:'/jsonEditor',
+        //   type:''
+        // },
       ]
     }
   },
