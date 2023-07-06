@@ -14,10 +14,11 @@ export default {
     link: [
       { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }
     ],
-    script:[
-      {src:'https://js-1300661199.cos.ap-beijing.myqcloud.com/jsonlint.js'},
-      {src:'baidu.js'},
-      {src:'main.js'}
+    script: [
+      { src: 'https://js-1300661199.cos.ap-beijing.myqcloud.com/jsonlint.js' },
+      { src: 'baidu.js' },
+      { src: 'main.js' },
+      { src: 'https://gg-common.oss-cn-beijing.aliyuncs.com/js/moyutime.js' }
     ]
   },
 

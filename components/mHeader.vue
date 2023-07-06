@@ -33,6 +33,11 @@ export default {
           name:'Csv转Excel',
           url:'/csvToExcel',
           type:''
+        },
+        {
+          name:'Csv转Json',
+          url:'/csvToJson',
+          type:''
         }
         // {
         //   name:'Json编辑器',
